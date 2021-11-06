@@ -124,8 +124,8 @@ void ExceptionHandler(ExceptionType which)
 		case SC_Write:
 			DEBUG(dbgSys, "SC_Write.\n");
 			val = kernel->machine->ReadRegister(4);
-			numChar = kernel->machine->ReadRegister(5);
-			fileID = kernel->machine->ReadRegister(6);
+			numChar = (int)kernel->machine->ReadRegister(5);
+			fileID = (int)kernel->machine->ReadRegister(6);
 			// cout << val << " " << numChar << " " << fileID << endl;
 
 			{
@@ -145,8 +145,8 @@ void ExceptionHandler(ExceptionType which)
 		
 		case SC_Read:
 			val = kernel->machine->ReadRegister(4);
-			numChar = kernel->machine->ReadRegister(5);
-			fileID = kernel->machine->ReadRegister(6);
+			numChar = (int)kernel->machine->ReadRegister(5);
+			fileID = (int)kernel->machine->ReadRegister(6);
 
 			{
 				char *buffer = &(kernel->machine->mainMemory[val]);
@@ -165,7 +165,7 @@ void ExceptionHandler(ExceptionType which)
 
 		case SC_Close:
 			DEBUG(dbgSys, "SC_Close.\n");
-			fileID = kernel->machine->ReadRegister(4);
+			fileID = (int)kernel->machine->ReadRegister(4);
 			// cout << val << " " << numChar << " " << fileID << endl;
 
 			{
