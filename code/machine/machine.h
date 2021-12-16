@@ -53,6 +53,7 @@ enum ExceptionType { NoException,           // Everything ok!
 		     OverflowException,     // Integer overflow in add or sub.
 		     IllegalInstrException, // Unimplemented or reserved instr.
 		     
+			 MemoryLimitException,
 		     NumExceptionTypes
 };
 

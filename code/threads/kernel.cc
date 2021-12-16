@@ -25,7 +25,12 @@
 //----------------------------------------------------------------------
 
 Kernel::Kernel(int argc, char **argv)
-{
+{   
+    for (int i = 0; i < NumPhysPages; i++) {
+        phyPageIsUsed[i] = false;
+    }
+    UsedPhysPage = 0;
+
     randomSlice = FALSE; 
     debugUserProg = FALSE;
     consoleIn = NULL;          // default is stdin
@@ -135,6 +140,7 @@ Kernel::~Kernel()
     delete fileSystem;
     delete postOfficeIn;
     delete postOfficeOut;
+    delete phyPageIsUsed;
     
     Exit(0);
 }

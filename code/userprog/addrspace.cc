@@ -65,21 +65,7 @@ SwapHeader (NoffHeader *noffH)
 //	only uniprogramming, and we have a single unsegmented page table
 //----------------------------------------------------------------------
 
-AddrSpace::AddrSpace()
-{
-    pageTable = new TranslationEntry[NumPhysPages];
-    for (int i = 0; i < NumPhysPages; i++) {
-	pageTable[i].virtualPage = i;	// for now, virt page # = phys page #
-	pageTable[i].physicalPage = i;
-	pageTable[i].valid = TRUE;
-	pageTable[i].use = FALSE;
-	pageTable[i].dirty = FALSE;
-	pageTable[i].readOnly = FALSE;  
-    }
-    
-    // zero out the entire address space
-    bzero(kernel->machine->mainMemory, MemorySize);
-}
+AddrSpace::AddrSpace() { }
 
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace
@@ -88,7 +74,12 @@ AddrSpace::AddrSpace()
 
 AddrSpace::~AddrSpace()
 {
-   delete pageTable;
+    for (int i = 0; i < numPages; i++) {
+       kernel->phyPageIsUsed[pageTable[i].physicalPage] = FALSE;
+       kernel->UsedPhysPage--;
+    }
+    
+    delete pageTable;
 }
 
 
@@ -135,36 +126,83 @@ AddrSpace::Load(char *fileName)
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
+    // ASSERT(numPages <= NumPhysPages);		// check we're not trying
 						// to run anything too big --
 						// at least until we have
 						// virtual memory
+    if (numPages > NumPhysPages || numPages > NumPhysPages - kernel->UsedPhysPage)
+        ExceptionHandler(MemoryLimitException);
+
+    // cout << numPages << " " << NumPhysPages - kernel->UsedPhysPage << endl;
+
+    pageTable = new TranslationEntry[numPages];
+    for (int i = 0; i < numPages; i++) {
+        int freePageIndex = 0;
+        for(; freePageIndex < NumPhysPages; freePageIndex++){
+            if(!kernel->phyPageIsUsed[freePageIndex]) break;
+        }
+
+        if (freePageIndex == NumPhysPages) ExceptionHandler(MemoryLimitException);
+
+        // cout << "FPI: " << freePageIndex << ", VP: "<< i << endl;
+
+        kernel->phyPageIsUsed[freePageIndex] = TRUE;
+        kernel->UsedPhysPage++;
+        pageTable[i].virtualPage = i;
+        pageTable[i].physicalPage = freePageIndex;
+        pageTable[i].valid = TRUE;
+        pageTable[i].use = FALSE;
+        pageTable[i].dirty = FALSE;
+        pageTable[i].readOnly = FALSE;  
+        bzero(&kernel->machine->mainMemory[freePageIndex * PageSize], PageSize);
+    }
 
     DEBUG(dbgAddr, "Initializing address space: " << numPages << ", " << size);
 
 // then, copy in the code and data segments into memory
-// Note: this code assumes that virtual address = physical address
+// Note: this code no longer assumes that virtual address = physical address
+
+    ExceptionType exception;
+
     if (noffH.code.size > 0) {
+        unsigned int physicalAddress;
+
+        exception = Translate(noffH.code.virtualAddr, &physicalAddress, 1);
+        if (exception != NoException) ExceptionHandler(exception);
+
         DEBUG(dbgAddr, "Initializing code segment.");
-	DEBUG(dbgAddr, noffH.code.virtualAddr << ", " << noffH.code.size);
+	DEBUG(dbgAddr, physicalAddress << ", " << noffH.code.size);
         executable->ReadAt(
-		&(kernel->machine->mainMemory[noffH.code.virtualAddr]), 
+		&(kernel->machine->mainMemory[physicalAddress]), 
 			noffH.code.size, noffH.code.inFileAddr);
     }
+
+
     if (noffH.initData.size > 0) {
+        unsigned int initPhysicalAddress;
+        exception = Translate(noffH.initData.virtualAddr, &initPhysicalAddress, 1);
+
+        if (exception != NoException)
+            ExceptionHandler(exception);
         DEBUG(dbgAddr, "Initializing data segment.");
-	DEBUG(dbgAddr, noffH.initData.virtualAddr << ", " << noffH.initData.size);
+	DEBUG(dbgAddr, initPhysicalAddress << ", " << noffH.initData.size);
         executable->ReadAt(
 		&(kernel->machine->mainMemory[noffH.initData.virtualAddr]),
 			noffH.initData.size, noffH.initData.inFileAddr);
     }
 
 #ifdef RDATA
+
     if (noffH.readonlyData.size > 0) {
+        unsigned int readOnlyPhysicalAddress;
+        exception = Translate(noffH.readonlyData.virtualAddr, &readOnlyPhysicalAddress, 0);
+
+        if (exception != NoException)
+            ExceptionHandler(exception);
         DEBUG(dbgAddr, "Initializing read only data segment.");
-	DEBUG(dbgAddr, noffH.readonlyData.virtualAddr << ", " << noffH.readonlyData.size);
+	DEBUG(dbgAddr, readOnlyPhysicalAddress << ", " << noffH.readonlyData.size);
         executable->ReadAt(
-		&(kernel->machine->mainMemory[noffH.readonlyData.virtualAddr]),
+		&(kernel->machine->mainMemory[readOnlyPhysicalAddress]),
 			noffH.readonlyData.size, noffH.readonlyData.inFileAddr);
     }
 #endif
