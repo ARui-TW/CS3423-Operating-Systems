@@ -81,7 +81,7 @@ class Thread {
     void *machineState[MachineStateSize];  // all registers except for stackTop
 
   public:
-    Thread(char* debugName, int threadID);		// initialize a Thread 
+    Thread(char* debugName, int threadID, int threadPriority = 149);		// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
 					// must not be running when delete 
@@ -103,7 +103,28 @@ class Thread {
     ThreadStatus getStatus() { return (status); }
 	char* getName() { return (name); }
     
-	int getID() { return (ID); }
+    int getID() { return (ID); }
+
+    int get_priority() { return (priority); }
+    void set_priority(int priority_num) { priority = priority_num; };
+
+    double get_appr_burst_time() { return approximated_burst_time; }
+
+    int get_start_waiting_time() { return start_waiting_time; }
+    void set_start_waiting_time(int new_start_waiting_time) { start_waiting_time = new_start_waiting_time; }
+
+    int get_start_running_time() { return start_running_time; }
+    void set_start_running_time(int new_start_running_time) { start_running_time = new_start_running_time; }
+
+    int get_burst_time(){return burst_time;}
+    void set_burst_time(int new_burst_time){burst_time = new_burst_time;}
+
+    int get_accumulated_ticks(){return accumulated_ticks;}
+    void set_accumulated_ticks(int new_ticks){accumulated_ticks = new_ticks;}
+
+    int get_total_waiting_time(){return total_waiting_time;}
+    void set_total_waiting_time(int new_total_waiting_time){total_waiting_time = new_total_waiting_time;}
+
     void Print() { cout << name; }
     void SelfTest();		// test whether thread impl is working
 
@@ -115,7 +136,14 @@ class Thread {
 				// (If NULL, don't deallocate stack)
     ThreadStatus status;	// ready, running or blocked
     char* name;
-	int   ID;
+    int   ID;
+    int priority;
+    double approximated_burst_time;
+    int start_running_time;
+    int start_waiting_time;
+    int burst_time;
+    int accumulated_ticks;
+    int total_waiting_time;
     void StackAllocate(VoidFunctionPtr func, void *arg);
     				// Allocate a stack for thread.
 				// Used internally by Fork()

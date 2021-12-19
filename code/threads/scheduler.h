@@ -30,6 +30,10 @@ class Scheduler {
     				// Cause nextThread to start running
     void CheckToBeDestroyed();// Check if thread that had been
     				// running needs to be deleted
+    bool CheckPreemption();
+
+    void AgingMechanism();
+
     void Print();		// Print contents of ready list
     
     // SelfTest for scheduler is implemented in class Thread
@@ -37,6 +41,9 @@ class Scheduler {
   private:
     List<Thread *> *readyList;  // queue of threads that are ready to run,
 				// but not running
+    SortedList<Thread *> *L1_ready_list;
+    SortedList<Thread *> *L2_ready_list;
+    List<Thread *> *L3_ready_list;
     Thread *toBeDestroyed;	// finishing thread to be destroyed
     				// by the next thread that runs
 };
