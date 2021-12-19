@@ -37,7 +37,7 @@ class Kernel {
 				// from constructor because 
 				// refers to "kernel" as a global
     void ExecAll();
-    int Exec(char* name);
+    int Exec(char* name,int priority);
     void ThreadSelfTest();	// self test of threads and synchronization
 	
     void ConsoleTest();         // interactive console self test
@@ -54,6 +54,7 @@ class Kernel {
     int CloseFile(OpenFileId id); // fileSystem call
     bool phyPageIsUsed[NumPhysPages];
     int UsedPhysPage;
+    int priority_array[10];
 
 // These are public for notational convenience; really, 
 // they're global variables used everywhere.

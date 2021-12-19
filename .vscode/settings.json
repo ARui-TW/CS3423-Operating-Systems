@@ -3,6 +3,11 @@
 	"files.associations": {
 		"ostream": "cpp",
 		"initializer_list": "cpp",
-		"array": "cpp"
+		"array": "cpp",
+		"*.tcc": "cpp",
+		"string": "cpp",
+		"typeinfo": "cpp",
+		"limits": "cpp",
+		"type_traits": "cpp"
 	}
 }

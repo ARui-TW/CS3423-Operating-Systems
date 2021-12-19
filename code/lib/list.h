@@ -95,6 +95,8 @@ class SortedList : public List<T> {
     ~SortedList() {};		// base class destructor called automatically
 
     void Insert(T item); 	// insert an item onto the list in sorted order
+    void L1_Insert(T item);
+    void L2_Insert(T item);
 
     void SanityCheck() const;	// has this list been corrupted?
     void SelfTest(T *p, int numEntries);
@@ -102,6 +104,12 @@ class SortedList : public List<T> {
 
   private:
     int (*compare)(T x, T y);	// function for sorting list elements
+    int L1_compare(T x, T y){
+      return (y -> get_appr_burst_time())-(x -> get_appr_burst_time());
+    }
+    int L2_compare(T x, T y){
+      return (y -> get_priority())-(x -> get_priority());
+    }
 
     void Prepend(T item) { Insert(item); }  // *pre*pending has no meaning 
 				             //	in a sorted list

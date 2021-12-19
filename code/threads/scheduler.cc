@@ -60,7 +60,17 @@ Scheduler::ReadyToRun (Thread *thread)
     DEBUG(dbgThread, "Putting thread on ready list: " << thread->getName());
 	//cout << "Putting thread on ready list: " << thread->getName() << endl ;
     thread->setStatus(READY);
-    readyList->Append(thread);
+    //readyList->Append(thread);
+
+    int pirority = thread -> get_priority();
+    if(pirority >= 100){
+        L1_queue -> L1_Insert(thread);
+    }else if(pirority >= 50){
+        L2_queue -> L2_Insert(thread);
+    }else{
+        L3_queue -> Append(thread);
+    }
+    thread -> set_start_waiting_time(kernel->stats->totalTicks);
 }
 
 //----------------------------------------------------------------------
@@ -76,11 +86,33 @@ Scheduler::FindNextToRun ()
 {
     ASSERT(kernel->interrupt->getLevel() == IntOff);
 
-    if (readyList->IsEmpty()) {
+  /*  if (readyList->IsEmpty()) {
 		return NULL;
     } else {
     	return readyList->RemoveFront();
+    }*/
+    if(L1_queue->IsEmpty() == 0){
+        Thread *thread = L1_queue->Front();
+        int new_total_waiting_time = kernel->stats->totalTicks - thread->get_start_waiting_time();
+        new_total_waiting_time += thread->get_total_waiting_time();
+        thread->set_total_waiting_time(new_total_waiting_time);
+        return L1_queue->RemoveFront();
+    }else if(L2_queue->IsEmpty() == 0){
+        Thread *thread = L2_queue->Front();
+        int new_total_waiting_time = kernel->stats->totalTicks - thread->get_start_waiting_time();
+        new_total_waiting_time += thread->get_total_waiting_time();
+        thread->set_total_waiting_time(new_total_waiting_time);
+        return L2_queue->RemoveFront();
+    }else if(L3_queue->IsEmpty() == 0){
+        Thread *thread = L3_queue->Front();
+        int new_total_waiting_time = kernel->stats->totalTicks - thread->get_start_waiting_time();
+        new_total_waiting_time += thread->get_total_waiting_time();
+        thread->set_total_waiting_time(new_total_waiting_time);
+        return L3_queue->RemoveFront();
+    }else{
+        return NULL;
     }
+    
 }
 
 //----------------------------------------------------------------------
@@ -129,10 +161,12 @@ Scheduler::Run (Thread *nextThread, bool finishing)
     // in switch.s.  You may have to think
     // a bit to figure out what happens after this, both from the point
     // of view of the thread and from the perspective of the "outside world".
+    nextThread->set_start_running_time(kernel->stats->totalTicks);
 
     SWITCH(oldThread, nextThread);
 
     // we're back, running oldThread
+    oldThread->set_start_waiting_time(kernel->stats->totalTicks);
       
     // interrupts are off when we return from switch!
     ASSERT(kernel->interrupt->getLevel() == IntOff);
@@ -176,4 +210,100 @@ Scheduler::Print()
 {
     cout << "Ready list contents:\n";
     readyList->Apply(ThreadPrint);
+}
+
+bool
+Scheduler::checkpreemption(){
+    Thread *thread = kernel->currentThread;
+    bool preemption = false;
+    if(L1_queue->IsEmpty() == 0){
+        if(thread->get_priority()<100)preemption = true;
+        else if(thread->get_appr_burst_time() > L1_queue->Front()->get_appr_burst_time())preemption = true;
+    }else if(L2_queue->IsEmpty() == 0 && thread->get_priority()<50){
+        preemption = true;
+    }else if(L2_queue->IsEmpty() == 0){
+        preemption = true;
+    }
+    return preemption;
+}
+
+void
+Scheduler::aging_mechanism(){
+    ListIterator<Thread *> *iterator;
+
+    iterator = new ListIterator<Thread *>(L1_queue);
+    SortedList<Thread* > * L1_queue_tmp;
+
+    for (;iterator->IsDone() == 0; iterator->Next()) {
+        Thread* thread = iterator->Item();
+        int new_total_waiting_time = kernel->stats->totalTicks - thread->get_start_waiting_time();
+        new_total_waiting_time += thread->get_total_waiting_time();
+        thread->set_total_waiting_time(new_total_waiting_time);
+        thread->set_start_waiting_time(kernel->stats->totalTicks);
+
+        if(thread->get_total_waiting_time() >= 1500){
+            int new_priority = thread->get_priority()+10;
+            if(new_priority <= 149)
+                thread->set_priority(new_priority);
+            thread->set_total_waiting_time(thread->get_total_waiting_time()-1500);
+            L1_queue_tmp->Insert(thread);
+        }else{
+            L1_queue_tmp->Insert(thread);
+        }
+    }
+
+    delete iterator;
+    delete L1_queue;
+    L1_queue = L1_queue_tmp;
+
+    iterator = new ListIterator<Thread *>(L2_queue);
+    SortedList<Thread* > * L2_queue_tmp;
+
+    for (;iterator->IsDone() == 0; iterator->Next()) {
+        Thread* thread = iterator->Item();
+        int new_total_waiting_time = kernel->stats->totalTicks - thread->get_start_waiting_time();
+        new_total_waiting_time += thread->get_total_waiting_time();
+        thread->set_total_waiting_time(new_total_waiting_time);
+        thread->set_start_waiting_time(kernel->stats->totalTicks);
+
+        if(thread->get_total_waiting_time() >= 1500){
+            int new_priority = thread->get_priority()+10;
+            thread->set_priority(new_priority);
+            thread->set_total_waiting_time(thread->get_total_waiting_time()-1500);
+            if(new_priority >= 100)L1_queue->Insert(thread);
+            else L2_queue_tmp->Insert(thread);
+        }else{
+            L2_queue_tmp->Insert(thread);
+        }
+    }
+
+    delete iterator;
+    delete L2_queue;
+    L2_queue = L2_queue_tmp;
+
+    iterator = new ListIterator<Thread *>(L3_queue);
+    List<Thread* > * L3_queue_tmp;
+
+    for (;iterator->IsDone() == 0; iterator->Next()) {
+        Thread* thread = iterator->Item();
+        int new_total_waiting_time = kernel->stats->totalTicks - thread->get_start_waiting_time();
+        new_total_waiting_time += thread->get_total_waiting_time();
+        thread->set_total_waiting_time(new_total_waiting_time);
+        thread->set_start_waiting_time(kernel->stats->totalTicks);
+
+        if(thread->get_total_waiting_time() >= 1500){
+            int new_priority = thread->get_priority()+10;
+            thread->set_priority(new_priority);
+            thread->set_total_waiting_time(thread->get_total_waiting_time()-1500);
+            if(new_priority >= 50)L2_queue->Insert(thread);
+            else L3_queue_tmp->Append(thread);
+        }else{
+            L3_queue_tmp->Append(thread);
+        }
+    }
+
+    delete iterator;
+    delete L3_queue;
+    L3_queue = L3_queue_tmp;
+
 }

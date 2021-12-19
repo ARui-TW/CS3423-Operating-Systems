@@ -48,8 +48,10 @@ Alarm::CallBack()
 {
     Interrupt *interrupt = kernel->interrupt;
     MachineStatus status = interrupt->getStatus();
+
+    kernel->scheduler->aging_mechanism();
     
-    if (status != IdleMode) {
+    if (status != IdleMode && kernel->scheduler->checkpreemption()) {
 	interrupt->YieldOnReturn();
     }
 }

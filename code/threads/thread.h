@@ -77,17 +77,41 @@ class Thread {
   private:
     // NOTE: DO NOT CHANGE the order of these first two members.
     // THEY MUST be in this position for SWITCH to work.
+    int priority;
+    double approximated_burst_time;
+    int start_running_time;
+    int start_waiting_time;
+    int burst_time;
+    int total_waiting_time;
+
     int *stackTop;			 // the current stack pointer
     void *machineState[MachineStateSize];  // all registers except for stackTop
 
   public:
-    Thread(char* debugName, int threadID);		// initialize a Thread 
+    Thread(char* debugName, int threadID, int initial_priority);		// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
 					// must not be running when delete 
 					// is called
 
     // basic thread operations
+
+    int get_priority();
+    void set_priority(int priority_num);
+
+    double get_appr_burst_time(){return approximated_burst_time;}
+
+    int get_start_running_time(){return start_running_time;}
+    void set_start_running_time(int new_start_running_time){start_running_time = new_start_running_time;}
+
+    int get_start_waiting_time(){return start_waiting_time;}
+    void set_start_waiting_time(int new_start_waiting_time){start_waiting_time = new_start_waiting_time;}
+
+    int get_burst_time(){return burst_time;}
+    void set_burst_time(int new_burst_time){burst_time = new_burst_time;}
+
+    int get_total_waiting_time(){return total_waiting_time;}
+    void set_total_waiting_time(int new_total_waiting_time){total_waiting_time = new_total_waiting_time;}
 
     void Fork(VoidFunctionPtr func, void *arg); 
     				// Make thread run (*func)(arg)

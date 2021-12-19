@@ -33,8 +33,9 @@ const int STACK_FENCEPOST = 0xdedbeef;
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName, int threadID)
+Thread::Thread(char* threadName, int threadID, int initial_priority)
 {
+    priority = initial_priority;
 	ID = threadID;
     name = threadName;
     stackTop = NULL;
@@ -214,6 +215,7 @@ Thread::Yield ()
 	kernel->scheduler->ReadyToRun(this);
 	kernel->scheduler->Run(nextThread, FALSE);
     }
+    this->burst_time = this->burst_time + (kernel->stats->totalTicks - this->start_running_time);
     (void) kernel->interrupt->SetLevel(oldLevel);
 }
 
@@ -247,6 +249,11 @@ Thread::Sleep (bool finishing)
     
     DEBUG(dbgThread, "Sleeping thread: " << name);
     DEBUG(dbgTraCode, "In Thread::Sleep, Sleeping thread: " << name << ", " << kernel->stats->totalTicks);
+
+    this->burst_time += kernel->stats->totalTicks - this->start_running_time;
+    double new_appr_burst_time = (double)(this->approximated_burst_time/2)+(double)(this->burst_time);
+    this->approximated_burst_time = new_appr_burst_time;
+    this->burst_time = 0;
 
     status = BLOCKED;
 	//cout << "debug Thread::Sleep " << name << "wait for Idle\n";
@@ -435,4 +442,14 @@ Thread::SelfTest()
     t->Fork((VoidFunctionPtr) SimpleThread, (void *) 1);
     kernel->currentThread->Yield();
     SimpleThread(0);
+}
+
+int
+Thread::get_priority(){
+    return priority;
+}
+
+void
+Thread::set_priority(int priority_num){
+    priority = priority_num;
 }

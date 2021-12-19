@@ -259,6 +259,66 @@ SortedList<T>::Insert(T item)
     ASSERT(IsInList(item));
 }
 
+template <class T>
+void
+SortedList<T>::L1_Insert(T item)
+{
+    ListElement<T> *element = new ListElement<T>(item);
+    ListElement<T> *ptr;		// keep track
+
+    ASSERT(!IsInList(item));
+    if (this->IsEmpty()) {			// if list is empty, put at front
+        this->first = element;
+        this->last = element;
+    } else if (L1_compare(item, this->first->item) < 0) {  // item goes at front 
+	element->next = this->first;
+	this->first = element;
+    } else {		// look for first elt in list bigger than item
+        for (ptr = this->first; ptr->next != NULL; ptr = ptr->next) {
+            if (L1_compare(item, ptr->next->item) < 0) {
+		element->next = ptr->next;
+	        ptr->next = element;
+		this->numInList++;
+		return;
+	    }
+	}
+	this->last->next = element;		// item goes at end of list
+	this->last = element;
+    }
+    this->numInList++;
+    ASSERT(IsInList(item));
+}
+
+template <class T>
+void
+SortedList<T>::L2_Insert(T item)
+{
+    ListElement<T> *element = new ListElement<T>(item);
+    ListElement<T> *ptr;		// keep track
+
+    ASSERT(!IsInList(item));
+    if (this->IsEmpty()) {			// if list is empty, put at front
+        this->first = element;
+        this->last = element;
+    } else if (L2_compare(item, this->first->item) < 0) {  // item goes at front 
+	element->next = this->first;
+	this->first = element;
+    } else {		// look for first elt in list bigger than item
+        for (ptr = this->first; ptr->next != NULL; ptr = ptr->next) {
+            if (L2_compare(item, ptr->next->item) < 0) {
+		element->next = ptr->next;
+	        ptr->next = element;
+		this->numInList++;
+		return;
+	    }
+	}
+	this->last->next = element;		// item goes at end of list
+	this->last = element;
+    }
+    this->numInList++;
+    ASSERT(IsInList(item));
+}
+
 //----------------------------------------------------------------------
 // List::SanityCheck
 //      Test whether this is still a legal list.
