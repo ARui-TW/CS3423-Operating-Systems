@@ -33,10 +33,11 @@ const int STACK_FENCEPOST = 0xdedbeef;
 //	"threadName" is an arbitrary string, useful for debugging.
 //----------------------------------------------------------------------
 
-Thread::Thread(char* threadName, int threadID)
+Thread::Thread(char* threadName, int threadID, int threadPriority)
 {
 	ID = threadID;
     name = threadName;
+    priority = threadPriority;
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
@@ -214,6 +215,8 @@ Thread::Yield ()
 	kernel->scheduler->ReadyToRun(this);
 	kernel->scheduler->Run(nextThread, FALSE);
     }
+    this->burst_time += kernel->stats->totalTicks - this->start_running_time;
+
     (void) kernel->interrupt->SetLevel(oldLevel);
 }
 
@@ -247,6 +250,12 @@ Thread::Sleep (bool finishing)
     
     DEBUG(dbgThread, "Sleeping thread: " << name);
     DEBUG(dbgTraCode, "In Thread::Sleep, Sleeping thread: " << name << ", " << kernel->stats->totalTicks);
+
+    this->burst_time += kernel->stats->totalTicks - this->start_running_time;
+    double new_appr_burst_time = (double)(this->approximated_burst_time / 2.0) + (double)(this->burst_time / 2.0);
+    DEBUG(dbgScheduling, "[D] Tick [" << kernel->stats->totalTicks << "]: Thread [" << this->getID() << "] update approximate burst time, from: [" << this->burst_time << "], add [" << this->approximated_burst_time << "], to [" << new_appr_burst_time <<"]");
+    this->approximated_burst_time = new_appr_burst_time;
+    this->burst_time = 0;
 
     status = BLOCKED;
 	//cout << "debug Thread::Sleep " << name << "wait for Idle\n";
