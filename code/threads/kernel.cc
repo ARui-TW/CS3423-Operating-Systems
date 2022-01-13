@@ -61,6 +61,7 @@ Kernel::Kernel(int argc, char **argv)
             ASSERT(i + 2 < argc);
             execfile[++execfileNum] = argv[++i];
             priority_array[execfileNum] = atoi(argv[++i]);
+            ASSERT(priority_array[execfileNum] < 150 && priority_array[execfileNum] >= 0)
 			cout << execfile[execfileNum] << " " << priority_array[execfileNum] << "\n";
         } else if (strcmp(argv[i], "-ci") == 0) {
 	    	ASSERT(i + 1 < argc);
@@ -126,8 +127,8 @@ Kernel::Initialize()
 #else
     fileSystem = new FileSystem(formatFlag);
 #endif // FILESYS_STUB
-    postOfficeIn = new PostOfficeInput(10);
-    postOfficeOut = new PostOfficeOutput(reliability);
+    // postOfficeIn = new PostOfficeInput(10);
+    // postOfficeOut = new PostOfficeOutput(reliability);
 
     interrupt->Enable();
 }
@@ -148,8 +149,8 @@ Kernel::~Kernel()
     delete synchConsoleOut;
     delete synchDisk;
     delete fileSystem;
-    delete postOfficeIn;
-    delete postOfficeOut;
+    // delete postOfficeIn;
+    // delete postOfficeOut;
     delete phyPageIsUsed;
     
     Exit(0);
